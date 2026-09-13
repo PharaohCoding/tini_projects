@@ -138,11 +138,30 @@ async def test_kick_after_done_starts_fifo_head(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_kick_kind_fairness_when_filling_second_slot(tmp_path):
+    db, scheduler, started, pid = await _harness(tmp_path)
+    try:
+        for title in ("r1", "r2", "r3"):
+            await db.insert_worker(pid, title=title, assignment=title, kind="research")
+        await db.insert_worker(pid, title="t1", assignment="t1", kind="test")
+        await scheduler.kick(pid)
+        running = await db.workers_by_status(pid, "running")
+        assert [w.kind for w in running] == ["research", "test"]
+        assert running[0].schedule_reason == "fifo"
+        assert running[1].schedule_reason == "fair-kind: 避免 research 占满双槽"
+        queued = await db.workers_by_status(pid, "queued")
+        assert [w.kind for w in queued] == ["research", "research"]
+    finally:
+        await db.close()
+
+
+@pytest.mark.asyncio
 async def test_kick_kind_fairness_after_slot_frees(tmp_path):
     db, scheduler, started, pid = await _harness(tmp_path)
     try:
         for title in ("r1", "r2", "r3"):
             await db.insert_worker(pid, title=title, assignment=title, kind="research")
+            await scheduler.kick(pid)
         await db.insert_worker(pid, title="t1", assignment="t1", kind="test")
         await scheduler.kick(pid)
         running = await db.workers_by_status(pid, "running")
