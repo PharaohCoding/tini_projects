@@ -136,37 +136,31 @@ function connectEvents(projectId) {
   const url = API_BASE + "/api/projects/" + encodeURIComponent(projectId) + "/events";
   eventSource = new EventSource(url);
 
-  const onAny = (ev) => {
-    loadScheduler(projectId);
-    loadWorkers(projectId);
-    const name = ev && ev.type ? ev.type : "";
-    if (name === "message" || name.startsWith("message")) {
-      loadMessages(projectId);
-    }
-    if (name === "context" || name.startsWith("context")) {
-      loadContext(projectId);
-    }
-  };
-
-  [
-    "message",
-    "worker",
-    "scheduler",
-    "context",
-    "worker.queued",
-    "worker.started",
-    "worker.done",
-    "scheduler.updated",
-  ].forEach((type) => {
-    eventSource.addEventListener(type, onAny);
-  });
-
-  eventSource.onmessage = () => {
+  const refreshAfterSse = () => {
     loadScheduler(projectId);
     loadWorkers(projectId);
     loadMessages(projectId);
     loadContext(projectId);
   };
+
+  [
+    "message",
+    "message.created",
+    "worker",
+    "worker.queued",
+    "worker.started",
+    "worker.done",
+    "worker.failed",
+    "worker.canceled",
+    "scheduler",
+    "scheduler.updated",
+    "context",
+    "context.updated",
+  ].forEach((type) => {
+    eventSource.addEventListener(type, refreshAfterSse);
+  });
+
+  eventSource.onmessage = refreshAfterSse;
 }
 
 async function loadList() {
@@ -323,7 +317,7 @@ function renderTree(nodes) {
     for (const node of list) {
       const li = el("li");
       const path = nodePath(node);
-      const name = node.name || path;
+      const name = node.name || path.split("/").filter(Boolean).pop() || path;
       if (isDir(node)) {
         const kids = listFrom(node, "children", "entries");
         const details = el("details", { open: true }, el("summary", { text: name || path || "/" }));
@@ -669,7 +663,15 @@ async function sendChat(ev) {
   try {
     const body = { content };
     if (attachment_ids.length) body.attachment_ids = attachment_ids;
-    await api("POST", "/projects/" + encodeURIComponent(currentProjectId) + "/messages", body);
+    const data = await api(
+      "POST",
+      "/projects/" + encodeURIComponent(currentProjectId) + "/messages",
+      body
+    );
+    if (data && data.scheduler && typeof data.scheduler === "object") {
+      lastScheduler = data.scheduler;
+      renderScheduler(data.scheduler);
+    }
     await loadMessages(currentProjectId);
     await loadScheduler(currentProjectId);
     await loadWorkers(currentProjectId);
