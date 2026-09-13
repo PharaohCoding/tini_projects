@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tini_projects</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- 纯静态。在 frontend/ 执行 python3 -m http.server 5500 ，打开 http://127.0.0.1:5500 ；API 见 app.js 的 API_BASE。 -->
+  <div id="banner" class="banner" hidden></div>
+
+  <section id="page-list" class="page">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">迷你 Projects</p>
+        <h1>tini_projects</h1>
+      </div>
+    </header>
+    <main class="list-main">
+      <form id="create-form" class="create-card">
+        <h2>新建 Project</h2>
+        <label>
+          名称
+          <input id="new-name" name="name" required maxlength="120" placeholder="例如：调度器可见性">
+        </label>
+        <label>
+          目标
+          <textarea id="new-goal" name="goal" rows="3" required placeholder="一句话目标"></textarea>
+        </label>
+        <button type="submit">新建</button>
+      </form>
+      <div id="project-list" class="project-cards"></div>
+    </main>
+  </section>
+
+  <section id="page-project" class="page" hidden>
+    <header class="topbar project-topbar">
+      <a class="back" href="#/">← 列表</a>
+      <div class="proj-head">
+        <h1 id="proj-name">Project</h1>
+        <p id="proj-goal"></p>
+      </div>
+      <span id="proj-status" class="badge"></span>
+    </header>
+
+    <div class="columns">
+      <aside class="col col-left">
+        <div class="col-head">
+          <h2>Context</h2>
+        </div>
+        <div id="context-tree" class="tree"></div>
+        <div id="file-pane" class="file-pane" hidden>
+          <div class="file-toolbar">
+            <span id="file-path"></span>
+            <button type="button" id="file-save" hidden>保存</button>
+          </div>
+          <textarea id="file-editor" hidden spellcheck="false"></textarea>
+          <pre id="file-view"></pre>
+        </div>
+      </aside>
+
+      <main class="col col-center">
+        <div class="chat-toolbar">
+          <h2>Coordinator</h2>
+          <button type="button" id="demo-btn" title="只填入 /demo-schedule，不自动发送">演示调度</button>
+          <button type="button" id="upload-btn">上传</button>
+          <input id="file-input" type="file" hidden>
+          <button type="button" id="import-toggle">导入对话</button>
+        </div>
+        <div id="attach-pending" class="chips"></div>
+        <div id="import-pane" class="import-pane" hidden>
+          <textarea id="import-text" rows="5" placeholder="粘贴要导入的 transcript 文本"></textarea>
+          <button type="button" id="import-submit">导入到 Context</button>
+        </div>
+        <div id="messages" class="messages"></div>
+        <form id="chat-form" class="composer">
+          <textarea id="chat-input" rows="3" placeholder="只跟 Coordinator 说话。演示调度请点按钮或输入 /demo-schedule。"></textarea>
+          <button type="submit">发送</button>
+        </form>
+      </main>
+
+      <aside class="col col-right" id="scheduler-bar">
+        <div class="sched-head">
+          <h2>调度</h2>
+          <div class="cap" aria-label="运行中占并发帽">
+            <span id="sched-running">0</span>/<span id="sched-max">2</span>
+          </div>
+        </div>
+        <p id="sched-policy" class="policy-name"></p>
+        <p class="policy-sentence">本项目最多 2 个并行；同 kind 占满双槽时让路给其他 kind。</p>
+        <h3>运行中</h3>
+        <div id="running-cards" class="stack"></div>
+        <h3>排队</h3>
+        <div id="queued-cards" class="stack"></div>
+        <h3>其他 Worker</h3>
+        <div id="other-workers" class="stack"></div>
+        <div id="worker-detail" class="worker-detail" hidden></div>
+      </aside>
+    </div>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>
